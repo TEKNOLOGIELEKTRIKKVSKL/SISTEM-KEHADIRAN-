@@ -34,14 +34,16 @@ function beep(kind='scan'){
  try{
   unlockSound();if(!audioCtx||audioCtx.state!=='running')return;
   const t=audioCtx.currentTime;
-  // Setiap jenis isyarat berbunyi selama 0.5 saat; gain ditingkatkan.
+  // Versi audio +50% amplitud: 0.65 x 1.5 = 0.975.
+  // Paras puncak kekal di bawah 1.0 untuk mengurangkan risiko clipping.
+  const BEEP_GAIN=0.975;
   const notes=kind==='success'?[[880,0,.24],[1175,.25,.25]]:kind==='error'?[[300,0,.50]]:[[750,0,.50]];
   notes.forEach(([hz,offset,duration])=>{
    const osc=audioCtx.createOscillator(),gain=audioCtx.createGain();
    osc.type='sine';osc.frequency.value=hz;
    gain.gain.setValueAtTime(.0001,t+offset);
-   gain.gain.exponentialRampToValueAtTime(.65,t+offset+.015);
-   gain.gain.setValueAtTime(.65,t+offset+duration-.045);
+   gain.gain.exponentialRampToValueAtTime(BEEP_GAIN,t+offset+.015);
+   gain.gain.setValueAtTime(BEEP_GAIN,t+offset+duration-.045);
    gain.gain.exponentialRampToValueAtTime(.0001,t+offset+duration);
    osc.connect(gain);gain.connect(audioCtx.destination);
    osc.start(t+offset);osc.stop(t+offset+duration+.01);
