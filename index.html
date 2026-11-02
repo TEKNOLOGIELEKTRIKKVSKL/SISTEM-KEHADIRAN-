@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ms">
 <head>
@@ -6,90 +7,442 @@
 <title>Pengimbas Kehadiran Pelajar</title>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <style>
-*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#eef5f2;color:#173f35}.wrap{max-width:620px;margin:auto;padding:16px}header{background:linear-gradient(120deg,#12372e,#237b61);color:white;padding:22px;border-radius:15px;text-align:center}h1{font-size:22px;margin:0 0 8px}.panel{background:white;padding:18px;margin-top:15px;border-radius:14px;box-shadow:0 2px 14px #0001}button{border:0;border-radius:10px;background:#176b52;color:white;padding:13px 16px;font-weight:bold;font-size:16px;cursor:pointer}.secondary{background:#536d65}button:disabled{opacity:.5}#reader{width:100%;margin-top:15px}#reader video{max-height:450px;object-fit:cover}#status{white-space:pre-wrap;overflow-wrap:anywhere}#list{max-height:230px;overflow-y:auto}li{padding:6px 0}.small{font-size:13px;color:#5c7069}.ok{color:#13734c}.bad{color:#b23c3c}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#eef5f2;color:#173f35}
+.wrap{max-width:620px;margin:auto;padding:16px}
+header{background:linear-gradient(120deg,#12372e,#237b61);color:white;padding:22px;border-radius:15px;text-align:center}
+h1{font-size:22px;margin:0 0 8px}
+.panel{background:white;padding:18px;margin-top:15px;border-radius:14px;box-shadow:0 2px 14px #0001}
+button{border:0;border-radius:10px;background:#176b52;color:white;padding:13px 16px;font-weight:bold;font-size:16px;cursor:pointer;margin:3px}
+.secondary{background:#536d65}
+button:disabled{opacity:.5}
+#reader{width:100%;margin-top:15px}
+#reader video{max-height:450px;object-fit:cover}
+#status{white-space:pre-wrap;overflow-wrap:anywhere}
+#list{max-height:230px;overflow-y:auto;padding-left:22px}
+li{padding:7px 0;border-bottom:1px solid #e5eee9}
+.small{font-size:13px;color:#5c7069}
+.ok{color:#13734c}
+.bad{color:#b23c3c}
+.wait{color:#92640e}
 </style>
 </head>
 <body>
 <div class="wrap">
-<header><h1>📷 PENGIMBAS KEHADIRAN</h1><div id="mode">Memuatkan...</div></header>
+<header>
+<h1>📷 PENGIMBAS KEHADIRAN</h1>
+<div id="mode">Memuatkan...</div>
+</header>
+
 <div class="panel">
 <p id="status" role="status">Sedia untuk mengimbas.</p>
 <button id="start">Aktifkan Kamera</button>
 <button id="stop" class="secondary">Hentikan</button>
 <div id="reader"></div>
-<p class="small">Pengimbas menghantar No. IC ke tab Google Apps Script yang membuka halaman ini. Pastikan kedua-dua tab kekal terbuka.</p>
+<p class="small">
+Halakan barcode melintang ke dalam kotak imbasan.
+Pastikan tab Google Apps Script kekal terbuka.
+</p>
 <p><b>Jumlah imbasan dihantar:</b> <span id="count">0</span></p>
+<p><b>Berjaya disimpan:</b> <span id="successCount">0</span></p>
 <ul id="list"></ul>
-</div></div>
+</div>
+</div>
+
 <script>
-const params=new URLSearchParams(location.search);
-const mode=params.get('mode'),nonce=params.get('nonce'),receiver=params.get('receiver');
-const $=id=>document.getElementById(id);
-let scanner=null,last=new Map(),count=0,audioCtx=null;
-const valid=!!(window.opener&&['HADIR','LEWAT'].includes(mode)&&nonce&&/^[a-f0-9]{40}$/.test(nonce)&&receiver&&/^https:\/\/[a-z0-9.-]+(?::\d+)?$/i.test(receiver));
-$('mode').textContent=valid?'MOD KEHADIRAN: '+mode:'Buka melalui Sistem Kehadiran Apps Script';
-function message(text){$('status').textContent=text}
-function unlockSound(){try{const AudioContextClass=window.AudioContext||window.webkitAudioContext;if(!AudioContextClass)return;if(!audioCtx)audioCtx=new AudioContextClass();if(audioCtx.state==='suspended')audioCtx.resume().catch(()=>{})}catch(e){}}
-function beep(kind='scan'){
- try{
-  unlockSound();if(!audioCtx||audioCtx.state!=='running')return;
-  const t=audioCtx.currentTime;
-  // Versi audio +50% amplitud: 0.65 x 1.5 = 0.975.
-  // Paras puncak kekal di bawah 1.0 untuk mengurangkan risiko clipping.
-  const BEEP_GAIN=0.975;
-  const notes=kind==='success'?[[880,0,.24],[1175,.25,.25]]:kind==='error'?[[300,0,.50]]:[[750,0,.50]];
-  notes.forEach(([hz,offset,duration])=>{
-   const osc=audioCtx.createOscillator(),gain=audioCtx.createGain();
-   osc.type='sine';osc.frequency.value=hz;
-   gain.gain.setValueAtTime(.0001,t+offset);
-   gain.gain.exponentialRampToValueAtTime(BEEP_GAIN,t+offset+.015);
-   gain.gain.setValueAtTime(BEEP_GAIN,t+offset+duration-.045);
-   gain.gain.exponentialRampToValueAtTime(.0001,t+offset+duration);
-   osc.connect(gain);gain.connect(audioCtx.destination);
-   osc.start(t+offset);osc.stop(t+offset+duration+.01);
+'use strict';
+
+const params = new URLSearchParams(location.search);
+const mode = params.get('mode');
+const nonce = params.get('nonce');
+const receiver = params.get('receiver');
+
+const $ = id => document.getElementById(id);
+
+const SCAN_COOLDOWN = 8000;
+const CONFIRM_TIMEOUT = 30000;
+const MAX_LOG = 100;
+
+let scanner = null;
+let starting = false;
+let count = 0;
+let successCount = 0;
+let audioCtx = null;
+let scanSerial = 0;
+
+const last = new Map();
+const pending = new Map();
+
+const valid = !!(
+  window.opener &&
+  ['HADIR','LEWAT'].includes(mode) &&
+  nonce &&
+  /^[a-f0-9]{40}$/.test(nonce) &&
+  receiver &&
+  /^https:\/\/[a-z0-9.-]+(?::\d+)?$/i.test(receiver)
+);
+
+$('mode').textContent = valid
+  ? 'MOD KEHADIRAN: ' + mode
+  : 'Buka melalui Sistem Kehadiran Apps Script';
+
+function message(text) {
+  $('status').textContent = text;
+}
+
+function unlockSound() {
+  try {
+    const AudioClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioClass) return;
+
+    if (!audioCtx) audioCtx = new AudioClass();
+
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume().catch(() => {});
+    }
+  } catch (e) {}
+}
+
+function beep(kind = 'scan') {
+  try {
+    unlockSound();
+    if (!audioCtx || audioCtx.state !== 'running') return;
+
+    const t = audioCtx.currentTime;
+    const BEEP_GAIN = 0.975;
+
+    const notes = kind === 'success'
+      ? [[880,0,.24],[1175,.25,.25]]
+      : kind === 'error'
+        ? [[300,0,.50]]
+        : [[750,0,.30]];
+
+    notes.forEach(([hz,offset,duration]) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.value = hz;
+
+      gain.gain.setValueAtTime(.0001,t+offset);
+      gain.gain.exponentialRampToValueAtTime(
+        BEEP_GAIN,t+offset+.015
+      );
+      gain.gain.setValueAtTime(
+        BEEP_GAIN,t+offset+duration-.045
+      );
+      gain.gain.exponentialRampToValueAtTime(
+        .0001,t+offset+duration
+      );
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc.start(t+offset);
+      osc.stop(t+offset+duration+.01);
+    });
+  } catch (e) {}
+}
+
+function extractIC(raw) {
+  const text = String(raw || '').trim();
+
+  const match = text.match(
+    /(?:^|\D)(\d{6}[- ]?\d{2}[- ]?\d{4})(?=\D|$)/
+  );
+
+  return match ? match[1].replace(/\D/g,'') : '';
+}
+
+function mask(ic) {
+  return ic.slice(0,2) + '********' + ic.slice(-2);
+}
+
+function addLog(ic, text, cls = 'wait') {
+  const li = document.createElement('li');
+  li.dataset.ic = ic;
+  li.className = cls;
+  li.textContent = text;
+  $('list').prepend(li);
+
+  while ($('list').children.length > MAX_LOG) {
+    $('list').lastElementChild.remove();
+  }
+
+  return li;
+}
+
+function cleanup() {
+  const now = Date.now();
+
+  for (const [ic,time] of last) {
+    if (now - time > 30000 && !pending.has(ic)) {
+      last.delete(ic);
+    }
+  }
+
+  for (const [ic,record] of pending) {
+    if (now - record.time > CONFIRM_TIMEOUT) {
+      pending.delete(ic);
+      last.delete(ic);
+
+      if (record.element) {
+        record.element.className = 'bad';
+        record.element.textContent =
+          '⚠ ' + mask(ic) +
+          ' — Pengesahan tamat masa. Semak dashboard sebelum imbas semula.';
+      }
+    }
+  }
+}
+
+function onScan(raw) {
+  const ic = extractIC(raw);
+
+  if (!ic) {
+    message('Kod tidak mengandungi No. IC 12 digit.');
+    return;
+  }
+
+  if (!valid || !window.opener || window.opener.closed) {
+    message('Sambungan Apps Script tidak tersedia.');
+    return;
+  }
+
+  const now = Date.now();
+
+  cleanup();
+
+  if (pending.has(ic)) return;
+
+  if (now - (last.get(ic) || 0) < SCAN_COOLDOWN) {
+    return;
+  }
+
+  last.set(ic,now);
+
+  beep('scan');
+
+  const element = addLog(
+    ic,
+    '⏳ ' + mask(ic) + ' — Menunggu pengesahan'
+  );
+
+  pending.set(ic,{
+    time:now,
+    element
   });
- }catch(e){/* Audio mungkin disekat oleh pelayar. Imbasan tetap berfungsi. */}
+
+  try {
+    window.opener.postMessage({
+      type:'KVS_ATTENDANCE_SCAN',
+      nonce,
+      mode,
+      code:ic
+    },receiver);
+
+    count++;
+    $('count').textContent = count;
+
+    message(
+      'Barcode dibaca: ' + mask(ic) +
+      '\nMenunggu pengesahan Google Sheets...'
+    );
+  } catch (e) {
+    pending.delete(ic);
+    last.delete(ic);
+
+    element.className = 'bad';
+    element.textContent =
+      '⚠ ' + mask(ic) + ' — Gagal menghantar imbasan';
+
+    beep('error');
+    message('Gagal menghantar kod kepada Apps Script.');
+  }
 }
-function extractIC(raw){const text=String(raw||'').trim(),match=text.match(/(?:^|\D)(\d{6}[- ]?\d{2}[- ]?\d{4})(?:\D|$)/);return match?match[1].replace(/\D/g,''):''}
-function mask(ic){return ic.slice(0,2)+'********'+ic.slice(-2)}
-function onScan(raw){
- const ic=extractIC(raw);
- if(!ic){message('Kod tidak mengandungi No. IC 12 digit.');return}
- const now=Date.now();if(now-(last.get(ic)||0)<8000)return;
- if(!valid){message('Buka pengimbas daripada Apps Script.');return}
- last.set(ic,now);
- if(last.size>150)for(const [key,time] of last)if(now-time>30000)last.delete(key);
- beep('scan');
- window.opener.postMessage({type:'KVS_ATTENDANCE_SCAN',nonce,mode,code:ic},receiver);
- count++;$('count').textContent=count;
- const li=document.createElement('li');li.dataset.ic=ic;li.textContent='⏳ Kod dihantar: '+mask(ic)+' — Menunggu pengesahan';$('list').prepend(li);
- message('✓ Barcode berjaya diimbas dan dihantar. Menunggu pengesahan rekod...');
-}
-window.addEventListener('message',event=>{
- if(event.origin!==receiver||event.source!==window.opener)return;
- const d=event.data;if(!d||d.type!=='KVS_ATTENDANCE_RESULT'||d.nonce!==nonce)return;
- const ok=d.status==='BERJAYA';
- const item=[...$('list').querySelectorAll('li')].find(el=>el.dataset.ic===d.ic&&el.textContent.includes('Menunggu'));
- if(item){item.textContent=(ok?'✓ ':'⚠ ')+mask(d.ic)+' — '+(d.message||d.status);item.className=ok?'ok':'bad'}
- if(ok){beep('success');message('✓ Rekod kehadiran berjaya disimpan: '+mask(d.ic))}
- else{beep('error');message('⚠ Rekod tidak disimpan: '+(d.message||d.status));last.delete(d.ic)}
+
+window.addEventListener('message',event => {
+  if (!valid) return;
+  if (event.origin !== receiver) return;
+  if (event.source !== window.opener) return;
+
+  const d = event.data;
+
+  if (
+    !d ||
+    d.type !== 'KVS_ATTENDANCE_RESULT' ||
+    d.nonce !== nonce ||
+    d.mode !== mode ||
+    typeof d.ic !== 'string' ||
+    !/^\d{12}$/.test(d.ic)
+  ) return;
+
+  const record = pending.get(d.ic);
+
+  if (!record) return;
+
+  pending.delete(d.ic);
+
+  const ok = d.status === 'BERJAYA';
+
+  if (record.element) {
+    record.element.className = ok ? 'ok' : 'bad';
+    record.element.textContent =
+      (ok ? '✓ ' : '⚠ ') +
+      mask(d.ic) + ' — ' +
+      (d.message || d.status || 'Tiada status');
+  }
+
+  if (ok) {
+    successCount++;
+    $('successCount').textContent = successCount;
+    beep('success');
+
+    message(
+      '✓ Rekod berjaya disimpan\n' +
+      mask(d.ic) + '\n' +
+      (d.message || '')
+    );
+  } else {
+    beep('error');
+
+    // Benarkan cubaan semula selepas kegagalan sebenar.
+    last.delete(d.ic);
+
+    message(
+      '⚠ Rekod tidak berjaya\n' +
+      mask(d.ic) + '\n' +
+      (d.message || d.status || '')
+    );
+  }
 });
-async function stopCamera(){if(scanner){try{await scanner.stop()}catch(e){}try{scanner.clear()}catch(e){}scanner=null}}
-async function startCamera(){
- unlockSound();
- if(!valid){message('Buka pengimbas melalui butang HADIR atau LEWAT di Apps Script.');return}
- if(typeof Html5Qrcode==='undefined'){message('Library pengimbas gagal dimuatkan.');return}
- await stopCamera();
- try{
-  scanner=new Html5Qrcode('reader',{verbose:false});
-  const options={fps:12,qrbox:(width,height)=>({width:Math.min(260,Math.floor(width*.75)),height:Math.min(220,Math.floor(height*.6))}),formatsToSupport:[Html5QrcodeSupportedFormats.QR_CODE,Html5QrcodeSupportedFormats.CODE_128,Html5QrcodeSupportedFormats.CODE_39,Html5QrcodeSupportedFormats.PDF_417,Html5QrcodeSupportedFormats.DATA_MATRIX]};
-  try{await scanner.start({facingMode:'environment'},options,onScan,()=>{})}
-  catch(error){const cameras=await Html5Qrcode.getCameras();if(!cameras.length)throw error;await scanner.start(cameras[cameras.length-1].id,options,onScan,()=>{})}
-  message('Kamera aktif. Halakan kepada QR Code atau barcode No. IC.');
- }catch(error){message('Kamera gagal: '+(error.message||error));scanner=null}
+
+async function stopCamera() {
+  if (!scanner) return;
+
+  const active = scanner;
+  scanner = null;
+
+  try {
+    await active.stop();
+  } catch (e) {}
+
+  try {
+    active.clear();
+  } catch (e) {}
 }
-$('start').onclick=startCamera;$('stop').onclick=stopCamera;
-window.addEventListener('beforeunload',()=>{if(scanner)scanner.stop().catch(()=>{})});
-if(valid){startCamera()}else{$('start').disabled=true}
+
+async function startCamera() {
+  unlockSound();
+
+  if (!valid) {
+    message(
+      'Buka pengimbas melalui butang HADIR atau LEWAT di Apps Script.'
+    );
+    return;
+  }
+
+  if (starting) return;
+
+  if (typeof Html5Qrcode === 'undefined') {
+    message('Library pengimbas gagal dimuatkan.');
+    return;
+  }
+
+  starting = true;
+  $('start').disabled = true;
+
+  try {
+    await stopCamera();
+
+    scanner = new Html5Qrcode('reader',{
+      verbose:false
+    });
+
+    const options = {
+      fps:20,
+
+      // Ruang lebar sesuai untuk barcode melintang.
+      qrbox:(width,height) => ({
+        width:Math.max(
+          50,
+          Math.min(360,Math.floor(width * .90))
+        ),
+        height:Math.max(
+          50,
+          Math.min(160,Math.floor(height * .45))
+        )
+      }),
+
+      formatsToSupport:[
+        Html5QrcodeSupportedFormats.CODE_128,
+        Html5QrcodeSupportedFormats.CODE_39,
+        Html5QrcodeSupportedFormats.QR_CODE,
+        Html5QrcodeSupportedFormats.PDF_417,
+        Html5QrcodeSupportedFormats.DATA_MATRIX
+      ]
+    };
+
+    try {
+      await scanner.start(
+        {facingMode:'environment'},
+        options,
+        onScan,
+        () => {}
+      );
+    } catch (firstError) {
+      const cameras = await Html5Qrcode.getCameras();
+
+      if (!cameras.length) throw firstError;
+
+      const rear = cameras.find(c =>
+        /back|rear|environment|belakang/i.test(c.label)
+      );
+
+      await scanner.start(
+        (rear || cameras[cameras.length-1]).id,
+        options,
+        onScan,
+        () => {}
+      );
+    }
+
+    message(
+      'Kamera aktif.\n' +
+      'Halakan barcode melintang ke dalam kotak imbasan.'
+    );
+  } catch (error) {
+    message(
+      'Kamera gagal: ' + (error.message || error)
+    );
+
+    try {
+      if (scanner) scanner.clear();
+    } catch (e) {}
+
+    scanner = null;
+  } finally {
+    starting = false;
+    $('start').disabled = !valid;
+  }
+}
+
+$('start').onclick = startCamera;
+
+$('stop').onclick = async () => {
+  await stopCamera();
+  message('Kamera dihentikan.');
+};
+
+window.addEventListener('beforeunload',() => {
+  if (scanner) scanner.stop().catch(() => {});
+});
+
+if (valid) {
+  startCamera();
+} else {
+  $('start').disabled = true;
+}
 </script>
-</body></html>
+</body>
+</html>
