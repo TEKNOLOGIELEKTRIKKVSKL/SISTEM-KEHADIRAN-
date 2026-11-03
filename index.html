@@ -1,762 +1,98 @@
-
 <!DOCTYPE html>
 <html lang="ms">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Pengimbas Kehadiran Pelajar V21</title>
-
+<title>Pengimbas Kehadiran Pelajar V22</title>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-
 <style>
-*{box-sizing:border-box}
-
-body{
- margin:0;
- font-family:Arial,sans-serif;
- background:#eef5f2;
- color:#173f35;
-}
-
-.wrap{
- max-width:650px;
- margin:auto;
- padding:12px;
-}
-
-header{
- background:linear-gradient(120deg,#12372e,#237b61);
- color:white;
- padding:18px;
- border-radius:14px;
- text-align:center;
-}
-
-h1{
- font-size:21px;
- margin:0 0 8px;
-}
-
-.panel{
- background:white;
- padding:15px;
- margin-top:12px;
- border-radius:14px;
- box-shadow:0 2px 14px #0001;
-}
-
-button,select{
- border:0;
- border-radius:9px;
- padding:11px 13px;
- font-size:14px;
-}
-
-button{
- background:#176b52;
- color:white;
- font-weight:bold;
- cursor:pointer;
-}
-
-button:disabled{opacity:.5}
-
-.secondary{background:#536d65}
-
-.controls{
- display:flex;
- gap:7px;
- flex-wrap:wrap;
- margin:10px 0;
-}
-
-.controls button{flex:1}
-
-.settings{
- display:grid;
- grid-template-columns:1fr 1fr;
- gap:10px;
- margin:12px 0;
-}
-
-.settings label{
- display:flex;
- flex-direction:column;
- gap:5px;
- font-size:13px;
-}
-
-.settings select{
- width:100%;
- border:1px solid #cbd8d2;
- background:white;
-}
-
-#reader{
- width:100%;
- margin:12px auto;
- overflow:hidden;
- border-radius:12px;
- background:#172b27;
-}
-
-#reader video{
- width:100%!important;
- max-height:480px;
- object-fit:contain;
-}
-
-#status{
- white-space:pre-wrap;
- overflow-wrap:anywhere;
- padding:11px;
- border-radius:9px;
- background:#edf4f0;
- line-height:1.5;
-}
-
-#list{
- max-height:250px;
- overflow-y:auto;
- padding-left:22px;
-}
-
-li{
- padding:8px 0;
- border-bottom:1px solid #e5eee9;
-}
-
-.small{
- font-size:13px;
- color:#5c7069;
- line-height:1.5;
-}
-
-.ok{color:#13734c}
-.bad{color:#b23c3c}
-.wait{color:#92640e}
-
-.counters{
- display:grid;
- grid-template-columns:repeat(2,1fr);
- gap:10px;
- margin-top:12px;
-}
-
-.counter{
- background:#edf5f0;
- padding:12px;
- border-radius:10px;
- text-align:center;
- font-size:13px;
-}
-
-.counter b{
- display:block;
- font-size:24px;
- color:#145b4c;
-}
-
-@media(max-width:400px){
- .settings{grid-template-columns:1fr}
- h1{font-size:18px}
-}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#eef5f2;color:#173f35}.wrap{max-width:650px;margin:auto;padding:12px}header{background:linear-gradient(120deg,#12372e,#237b61);color:white;padding:18px;border-radius:14px;text-align:center}h1{font-size:21px;margin:0 0 8px}.panel{background:white;padding:15px;margin-top:12px;border-radius:14px;box-shadow:0 2px 14px #0001}button,select{border:0;border-radius:9px;padding:11px 13px;font-size:14px}button{background:#176b52;color:white;font-weight:bold;cursor:pointer}button:disabled{opacity:.5}.secondary{background:#536d65}.controls{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}.controls button{flex:1}.settings{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}.settings label{display:flex;flex-direction:column;gap:5px;font-size:13px}.settings select{width:100%;border:1px solid #cbd8d2;background:white}#reader{width:100%;margin:12px auto;overflow:hidden;border-radius:12px;background:#172b27}#reader video{width:100%!important;max-height:480px;object-fit:contain}#status{white-space:pre-wrap;overflow-wrap:anywhere;padding:11px;border-radius:9px;background:#edf4f0;line-height:1.5}#list{max-height:250px;overflow-y:auto;padding-left:22px}li{padding:8px 0;border-bottom:1px solid #e5eee9}.small{font-size:13px;color:#5c7069;line-height:1.5}.ok{color:#13734c}.bad{color:#b23c3c}.counters{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:12px}.counter{background:#edf5f0;padding:12px;border-radius:10px;text-align:center;font-size:13px}.counter b{display:block;font-size:24px;color:#145b4c}@media(max-width:400px){.settings{grid-template-columns:1fr}h1{font-size:18px}}
 </style>
 </head>
-
 <body>
 <div class="wrap">
-
-<header>
-<h1>📷 PENGIMBAS KEHADIRAN</h1>
-<div id="mode">Memuatkan...</div>
-<small>Pengimbas Barcode V21</small>
-</header>
-
+<header><h1>📷 PENGIMBAS KEHADIRAN</h1><div id="mode">Memuatkan...</div><small>Pengimbas Barcode V22</small></header>
 <div class="panel">
-
-<p id="status" role="status">
-Sedia untuk mengimbas.
-</p>
-
-<div class="controls">
-<button id="start">Aktifkan Kamera</button>
-<button id="stop" class="secondary">Hentikan</button>
-<button id="torch" class="secondary" disabled>
-Lampu Suluh
-</button>
-</div>
-
+<p id="status" role="status">Sedia untuk mengimbas.</p>
+<div class="controls"><button id="start">Aktifkan Kamera</button><button id="stop" class="secondary">Hentikan</button><button id="torch" class="secondary" disabled>Lampu Suluh</button></div>
 <div class="settings">
-
-<label>
-Kelajuan Imbasan
-<select id="fps">
-<option value="10">10 FPS — Jimat bateri</option>
-<option value="15" selected>15 FPS — Stabil</option>
-<option value="20">20 FPS — Pantas</option>
-</select>
-</label>
-
-<label>
-Kamera
-<select id="camera">
-<option value="">Kamera belakang (Auto)</option>
-</select>
-</label>
-
+<label>Kelajuan Imbasan<select id="fps"><option value="10">10 FPS — Jimat bateri</option><option value="15" selected>15 FPS — Stabil</option><option value="20">20 FPS — Pantas</option></select></label>
+<label>Kamera<select id="camera"><option value="">Kamera belakang (Auto)</option></select></label>
 </div>
-
 <div id="reader"></div>
-
-<p class="small">
-Halakan keseluruhan barcode melintang ke dalam ruang
-imbasan. Untuk barcode pada skrin, besarkan kod,
-kurangkan pantulan cahaya dan pastikan kamera fokus.
-</p>
-
-<div class="counters">
-<div class="counter">
-<b id="count">0</b>
-Imbasan dihantar
-</div>
-<div class="counter">
-<b id="successCount">0</b>
-Berjaya disimpan
-</div>
-</div>
-
-<h3>Rekod Imbasan</h3>
-<ul id="list"></ul>
-
-<p class="small">
-Pengimbas menghantar No. IC kepada tab Google
-Apps Script yang membuka halaman ini.
-Pastikan kedua-dua tab kekal terbuka.
-</p>
-
-</div>
-</div>
-
+<p class="small">Halakan keseluruhan barcode melintang ke dalam ruang imbasan. Untuk barcode pada skrin, besarkan kod, kurangkan pantulan cahaya dan pastikan kamera fokus.</p>
+<div class="counters"><div class="counter"><b id="count">0</b>Barcode diimbas</div><div class="counter"><b id="sentCount">0</b>Rekod dihantar</div></div>
+<h3>Rekod Imbasan</h3><ul id="list"></ul>
+<p class="small">“Rekod dihantar” bermaksud mesej telah dihantar kepada tab Google Apps Script. Penyimpanan dalam Google Sheets tidak disahkan di halaman ini. Pastikan kedua-dua tab kekal terbuka.</p>
+</div></div>
 <script>
 'use strict';
-
 const params=new URLSearchParams(location.search);
-const mode=params.get('mode');
-const nonce=params.get('nonce');
-const receiver=params.get('receiver');
-
+const mode=params.get('mode'),nonce=params.get('nonce'),receiver=params.get('receiver');
 const $=id=>document.getElementById(id);
-
-const SCAN_COOLDOWN=8000;
-const CONFIRM_TIMEOUT=30000;
-const MAX_LOG=100;
-
-let scanner=null;
-let starting=false;
-let count=0;
-let successCount=0;
-let audioCtx=null;
-let torchOn=false;
-
+const SCAN_COOLDOWN=8000,MAX_LOG=100;
+let scanner=null,starting=false,count=0,sentCount=0,audioCtx=null,torchOn=false;
 const last=new Map();
-const pending=new Map();
-
-const valid=!!(
- window.opener &&
- ['HADIR','LEWAT'].includes(mode) &&
- nonce &&
- /^[a-f0-9]{40}$/.test(nonce) &&
- receiver &&
- /^https:\/\/[a-z0-9.-]+(?::\d+)?$/i.test(receiver)
-);
-
-$('mode').textContent=valid
- ? 'MOD KEHADIRAN: '+mode
- : 'Buka melalui Sistem Kehadiran Apps Script';
-
-function message(text){
- $('status').textContent=text;
-}
-
-function unlockSound(){
+const valid=!!(window.opener&&['HADIR','LEWAT'].includes(mode)&&nonce&&/^[a-f0-9]{40}$/.test(nonce)&&receiver&&/^https:\/\/[a-z0-9.-]+(?::\d+)?$/i.test(receiver));
+$('mode').textContent=valid?'MOD KEHADIRAN: '+mode:'Buka melalui Sistem Kehadiran Apps Script';
+function message(text){$('status').textContent=text}
+function unlockSound(){try{const A=window.AudioContext||window.webkitAudioContext;if(!A)return;if(!audioCtx)audioCtx=new A();if(audioCtx.state==='suspended')audioCtx.resume().catch(()=>{})}catch(e){}}
+function beep(){
  try{
-  const AudioClass=
-   window.AudioContext||window.webkitAudioContext;
-
-  if(!AudioClass)return;
-
-  if(!audioCtx)audioCtx=new AudioClass();
-
-  if(audioCtx.state==='suspended'){
-   audioCtx.resume().catch(()=>{});
-  }
- }catch(e){}
-}
-
-function beep(kind='scan'){
- try{
-  unlockSound();
-
-  if(!audioCtx||audioCtx.state!=='running')return;
-
+  unlockSound();if(!audioCtx||audioCtx.state!=='running')return;
   const t=audioCtx.currentTime;
-  const GAIN=.975;
-
-  const notes=kind==='success'
-   ? [[880,0,.24],[1175,.25,.25]]
-   : kind==='error'
-    ? [[300,0,.50]]
-    : [[750,0,.30]];
-
-  notes.forEach(([hz,offset,duration])=>{
-   const osc=audioCtx.createOscillator();
-   const gain=audioCtx.createGain();
-
-   osc.type='sine';
-   osc.frequency.value=hz;
-
+  // Kuatkan persepsi bunyi dengan durasi dan dua nada; hadkan output kepada 0.95.
+  // Tidak menjamin +80% kelantangan fizikal; volume peranti masih menentukan hasil.
+  const master=audioCtx.createGain();master.gain.value=.95;master.connect(audioCtx.destination);
+  [[880,0,.20],[1175,.20,.24]].forEach(([hz,offset,duration])=>{
+   const osc=audioCtx.createOscillator(),gain=audioCtx.createGain();
+   osc.type='square';osc.frequency.value=hz;
    gain.gain.setValueAtTime(.0001,t+offset);
-
-   gain.gain.exponentialRampToValueAtTime(
-    GAIN,t+offset+.015
-   );
-
-   gain.gain.setValueAtTime(
-    GAIN,t+offset+duration-.045
-   );
-
-   gain.gain.exponentialRampToValueAtTime(
-    .0001,t+offset+duration
-   );
-
-   osc.connect(gain);
-   gain.connect(audioCtx.destination);
-
-   osc.start(t+offset);
-   osc.stop(t+offset+duration+.01);
+   gain.gain.exponentialRampToValueAtTime(.25,t+offset+.012);
+   gain.gain.setValueAtTime(.25,t+offset+duration-.04);
+   gain.gain.exponentialRampToValueAtTime(.0001,t+offset+duration);
+   osc.connect(gain);gain.connect(master);osc.start(t+offset);osc.stop(t+offset+duration+.01);
   });
  }catch(e){}
 }
-
-function extractIC(raw){
- const text=String(raw||'').trim();
-
- const match=text.match(
-  /(?:^|\D)(\d{6}[- ]?\d{2}[- ]?\d{4})(?=\D|$)/
- );
-
- return match?match[1].replace(/\D/g,''):'';
-}
-
-function mask(ic){
- return ic.slice(0,2)+'********'+ic.slice(-2);
-}
-
-function addLog(ic,text,cls='wait'){
- const li=document.createElement('li');
-
- li.dataset.ic=ic;
- li.className=cls;
- li.textContent=text;
-
- $('list').prepend(li);
-
- while($('list').children.length>MAX_LOG){
-  $('list').lastElementChild.remove();
- }
-
- return li;
-}
-
-function cleanup(){
- const now=Date.now();
-
- for(const [ic,time] of last){
-  if(now-time>30000&&!pending.has(ic)){
-   last.delete(ic);
-  }
- }
-
- for(const [ic,record] of pending){
-  if(now-record.time>CONFIRM_TIMEOUT){
-   pending.delete(ic);
-   last.delete(ic);
-
-   if(record.element){
-    record.element.className='bad';
-    record.element.textContent=
-     '⚠ '+mask(ic)+
-     ' — Pengesahan tamat masa. Semak dashboard sebelum imbas semula.';
-   }
-  }
- }
-}
-
+function extractIC(raw){const match=String(raw||'').trim().match(/(?:^|\D)(\d{6}[- ]?\d{2}[- ]?\d{4})(?=\D|$)/);return match?match[1].replace(/\D/g,''):''}
+function mask(ic){return ic.slice(0,2)+'********'+ic.slice(-2)}
+function addLog(ic,text,cls='ok'){const li=document.createElement('li');li.dataset.ic=ic;li.className=cls;li.textContent=text;$('list').prepend(li);while($('list').children.length>MAX_LOG)$('list').lastElementChild.remove();return li}
 function onScan(raw){
  const ic=extractIC(raw);
-
- if(!ic){
-  message('Kod tidak mengandungi No. IC 12 digit.');
-  return;
- }
-
- if(!valid||!window.opener||window.opener.closed){
-  message('Sambungan Apps Script tidak tersedia.');
-  return;
- }
-
- cleanup();
-
- const now=Date.now();
-
- if(pending.has(ic))return;
-
- if(now-(last.get(ic)||0)<SCAN_COOLDOWN){
-  return;
- }
-
- last.set(ic,now);
-
- beep('scan');
-
- const element=addLog(
-  ic,
-  '⏳ '+mask(ic)+' — Menunggu pengesahan'
- );
-
- pending.set(ic,{
-  time:now,
-  element
- });
-
+ if(!ic){message('Kod tidak mengandungi No. IC 12 digit.');return}
+ if(!valid||!window.opener||window.opener.closed){message('Tab Apps Script tidak tersedia. Buka pengimbas semula melalui sistem kehadiran.');return}
+ const now=Date.now();for(const [key,time] of last){if(now-time>30000)last.delete(key)}
+ if(now-(last.get(ic)||0)<SCAN_COOLDOWN)return;
+ last.set(ic,now);count++;$('count').textContent=count;
  try{
-  window.opener.postMessage({
-   type:'KVS_ATTENDANCE_SCAN',
-   nonce,
-   mode,
-   code:ic
-  },receiver);
-
-  count++;
-  $('count').textContent=count;
-
-  message(
-   'Barcode berjaya dibaca: '+mask(ic)+
-   '\nMenunggu pengesahan Google Sheets...'
-  );
-
- }catch(e){
-  pending.delete(ic);
-  last.delete(ic);
-
-  element.className='bad';
-  element.textContent=
-   '⚠ '+mask(ic)+' — Gagal menghantar';
-
-  beep('error');
-
-  message('Gagal menghantar imbasan.');
- }
+  window.opener.postMessage({type:'KVS_ATTENDANCE_SCAN',nonce,mode,code:ic},receiver);
+  sentCount++;$('sentCount').textContent=sentCount;
+  beep();addLog(ic,'✓ '+mask(ic)+' — Barcode diimbas, rekod telah dihantar');
+  message('✓ Barcode berjaya diimbas\n✓ Rekod telah dihantar ke Apps Script\n'+mask(ic));
+ }catch(e){last.delete(ic);addLog(ic,'⚠ '+mask(ic)+' — Gagal menghantar mesej','bad');message('Gagal menghantar rekod ke tab Apps Script.')}
 }
-
-window.addEventListener('message',event=>{
- if(!valid)return;
-
- if(event.origin!==receiver)return;
- if(event.source!==window.opener)return;
-
- const d=event.data;
-
- if(
-  !d ||
-  d.type!=='KVS_ATTENDANCE_RESULT' ||
-  d.nonce!==nonce ||
-  d.mode!==mode ||
-  typeof d.ic!=='string' ||
-  !/^\d{12}$/.test(d.ic)
- )return;
-
- const record=pending.get(d.ic);
-
- if(!record)return;
-
- pending.delete(d.ic);
-
- const ok=d.status==='BERJAYA';
-
- if(record.element){
-  record.element.className=ok?'ok':'bad';
-
-  record.element.textContent=
-   (ok?'✓ ':'⚠ ')+
-   mask(d.ic)+' — '+
-   (d.message||d.status||'Tiada status');
- }
-
- if(ok){
-  successCount++;
-  $('successCount').textContent=successCount;
-
-  beep('success');
-
-  message(
-   '✓ Rekod berjaya disimpan\n'+
-   mask(d.ic)+'\n'+
-   (d.message||'')
-  );
-
- }else{
-  last.delete(d.ic);
-  beep('error');
-
-  message(
-   '⚠ Rekod tidak berjaya\n'+
-   mask(d.ic)+'\n'+
-   (d.message||d.status||'')
-  );
- }
-});
-
-async function loadCameras(){
- try{
-  if(typeof Html5Qrcode==='undefined')return;
-
-  const cameras=await Html5Qrcode.getCameras();
-
-  const old=$('camera').value;
-
-  $('camera').innerHTML=
-   '<option value="">Kamera belakang (Auto)</option>';
-
-  cameras.forEach(cam=>{
-   const opt=document.createElement('option');
-   opt.value=cam.id;
-   opt.textContent=cam.label||'Kamera '+cam.id;
-   $('camera').appendChild(opt);
-  });
-
-  if([...$('camera').options].some(o=>o.value===old)){
-   $('camera').value=old;
-  }
-
- }catch(e){
-  console.warn('Senarai kamera tidak tersedia:',e);
- }
-}
-
-async function stopCamera(){
- if(!scanner)return;
-
- const active=scanner;
- scanner=null;
- torchOn=false;
-
- $('torch').disabled=true;
- $('torch').textContent='Lampu Suluh';
-
- try{
-  await active.stop();
- }catch(e){}
-
- try{
-  active.clear();
- }catch(e){}
-}
-
-function scanOptions(){
- const fps=Number($('fps').value)||15;
-
- return {
-  fps,
-
-  qrbox:(width,height)=>{
-   // Kekalkan ruang imbasan dalam dimensi video.
-   const w=Math.max(
-    50,
-    Math.min(400,Math.floor(width*.94))
-   );
-
-   const h=Math.max(
-    50,
-    Math.min(220,Math.floor(height*.65))
-   );
-
-   return {
-    width:Math.min(w,Math.floor(width)),
-    height:Math.min(h,Math.floor(height))
-   };
-  },
-
-  formatsToSupport:[
-   Html5QrcodeSupportedFormats.CODE_128,
-   Html5QrcodeSupportedFormats.CODE_39,
-   Html5QrcodeSupportedFormats.EAN_13,
-   Html5QrcodeSupportedFormats.EAN_8,
-   Html5QrcodeSupportedFormats.ITF,
-   Html5QrcodeSupportedFormats.CODABAR,
-   Html5QrcodeSupportedFormats.QR_CODE,
-   Html5QrcodeSupportedFormats.PDF_417,
-   Html5QrcodeSupportedFormats.DATA_MATRIX
-  ]
- };
-}
-
-async function setupTorch(){
- $('torch').disabled=true;
-
- if(!scanner)return;
-
- try{
-  const capabilities=scanner.getRunningTrackCapabilities();
-
-  if(capabilities&&capabilities.torch){
-   $('torch').disabled=false;
-  }
- }catch(e){}
-}
-
+async function loadCameras(){try{if(typeof Html5Qrcode==='undefined')return;const cameras=await Html5Qrcode.getCameras();const old=$('camera').value;$('camera').innerHTML='<option value="">Kamera belakang (Auto)</option>';cameras.forEach(cam=>{const o=document.createElement('option');o.value=cam.id;o.textContent=cam.label||'Kamera '+cam.id;$('camera').appendChild(o)});if([...$('camera').options].some(o=>o.value===old))$('camera').value=old}catch(e){console.warn('Senarai kamera tidak tersedia:',e)}}
+async function stopCamera(){if(!scanner)return;const active=scanner;scanner=null;torchOn=false;$('torch').disabled=true;$('torch').textContent='Lampu Suluh';try{await active.stop()}catch(e){}try{active.clear()}catch(e){}}
+function scanOptions(){return{fps:Number($('fps').value)||15,qrbox:(width,height)=>({width:Math.min(Math.max(50,Math.floor(width*.94)),400,Math.floor(width)),height:Math.min(Math.max(50,Math.floor(height*.65)),220,Math.floor(height))}),formatsToSupport:[Html5QrcodeSupportedFormats.CODE_128,Html5QrcodeSupportedFormats.CODE_39,Html5QrcodeSupportedFormats.EAN_13,Html5QrcodeSupportedFormats.EAN_8,Html5QrcodeSupportedFormats.ITF,Html5QrcodeSupportedFormats.CODABAR,Html5QrcodeSupportedFormats.QR_CODE,Html5QrcodeSupportedFormats.PDF_417,Html5QrcodeSupportedFormats.DATA_MATRIX]}}
+async function setupTorch(){$('torch').disabled=true;if(!scanner)return;try{const c=scanner.getRunningTrackCapabilities();if(c&&c.torch)$('torch').disabled=false}catch(e){}}
 async function startCamera(){
- unlockSound();
-
- if(!valid){
-  message(
-   'Buka pengimbas melalui butang HADIR atau LEWAT di Apps Script.'
-  );
-  return;
- }
-
- if(starting)return;
-
- if(typeof Html5Qrcode==='undefined'){
-  message('Library pengimbas gagal dimuatkan.');
-  return;
- }
-
- starting=true;
- $('start').disabled=true;
-
+ unlockSound();if(!valid){message('Buka pengimbas melalui butang HADIR atau LEWAT di Apps Script.');return}
+ if(starting)return;if(typeof Html5Qrcode==='undefined'){message('Library pengimbas gagal dimuatkan.');return}
+ starting=true;$('start').disabled=true;
  try{
-  await stopCamera();
-
-  scanner=new Html5Qrcode('reader',{
-   verbose:false
-  });
-
-  const options=scanOptions();
-
-  const selected=$('camera').value;
-
-  if(selected){
-   await scanner.start(
-    selected,
-    options,
-    onScan,
-    ()=>{}
-   );
-
-  }else{
-   try{
-    await scanner.start(
-     {facingMode:'environment'},
-     options,
-     onScan,
-     ()=>{}
-    );
-
-   }catch(firstError){
-    const cameras=await Html5Qrcode.getCameras();
-
-    if(!cameras.length)throw firstError;
-
-    const rear=cameras.find(c=>
-     /back|rear|environment|belakang/i.test(c.label)
-    );
-
-    await scanner.start(
-     (rear||cameras[cameras.length-1]).id,
-     options,
-     onScan,
-     ()=>{}
-    );
-   }
-  }
-
-  await setupTorch();
-
-  message(
-   'Kamera aktif.\n'+
-   'Halakan barcode melintang ke dalam kotak imbasan.\n'+
-   'Jika sukar membaca skrin, cuba 10 atau 15 FPS dan laraskan jarak kamera.'
-  );
-
- }catch(error){
-  message(
-   'Kamera gagal: '+(error.message||error)
-  );
-
-  try{
-   if(scanner)scanner.clear();
-  }catch(e){}
-
-  scanner=null;
-
- }finally{
-  starting=false;
-  $('start').disabled=!valid;
- }
+  await stopCamera();scanner=new Html5Qrcode('reader',{verbose:false});const options=scanOptions(),selected=$('camera').value;
+  if(selected){await scanner.start(selected,options,onScan,()=>{})}
+  else{try{await scanner.start({facingMode:'environment'},options,onScan,()=>{})}catch(firstError){const cameras=await Html5Qrcode.getCameras();if(!cameras.length)throw firstError;const rear=cameras.find(c=>/back|rear|environment|belakang/i.test(c.label));await scanner.start((rear||cameras[cameras.length-1]).id,options,onScan,()=>{})}}
+  await setupTorch();message('Kamera aktif. Halakan barcode melintang ke dalam ruang imbasan.');
+ }catch(e){message('Kamera gagal: '+(e.message||e));try{if(scanner)scanner.clear()}catch(_){}scanner=null}
+ finally{starting=false;$('start').disabled=!valid}
 }
-
-$('torch').onclick=async()=>{
- if(!scanner)return;
-
- try{
-  torchOn=!torchOn;
-
-  await scanner.applyVideoConstraints({
-   advanced:[{torch:torchOn}]
-  });
-
-  $('torch').textContent=
-   torchOn?'Padam Lampu':'Lampu Suluh';
-
- }catch(e){
-  torchOn=false;
-  message('Lampu suluh tidak disokong oleh kamera ini.');
- }
-};
-
-$('start').onclick=startCamera;
-
-$('stop').onclick=async()=>{
- await stopCamera();
- message('Kamera dihentikan.');
-};
-
-$('fps').onchange=async()=>{
- if(scanner){
-  await startCamera();
- }
-};
-
-$('camera').onchange=async()=>{
- if(scanner){
-  await startCamera();
- }
-};
-
-window.addEventListener('beforeunload',()=>{
- if(scanner){
-  scanner.stop().catch(()=>{});
- }
-});
-
-if(valid){
- startCamera().then(loadCameras);
-}else{
- $('start').disabled=true;
-}
-
+$('torch').onclick=async()=>{if(!scanner)return;try{torchOn=!torchOn;await scanner.applyVideoConstraints({advanced:[{torch:torchOn}]});$('torch').textContent=torchOn?'Padam Lampu':'Lampu Suluh'}catch(e){torchOn=false;message('Lampu suluh tidak disokong oleh kamera ini.')}};
+$('start').onclick=startCamera;$('stop').onclick=async()=>{await stopCamera();message('Kamera dihentikan.')};
+$('fps').onchange=async()=>{if(scanner)await startCamera()};$('camera').onchange=async()=>{if(scanner)await startCamera()};
+window.addEventListener('beforeunload',()=>{if(scanner)scanner.stop().catch(()=>{})});
+if(valid){startCamera().then(loadCameras)}else{$('start').disabled=true}
 </script>
 </body>
 </html>
